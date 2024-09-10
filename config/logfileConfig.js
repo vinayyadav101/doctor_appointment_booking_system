@@ -4,7 +4,7 @@ import {install} from 'py-logging/nodekit/index.js'
 install(logging)
 
 logging.basicConfig({
-    filename: '/var/log/logs.log',
+    filename: 'path/to/logfile.log',
     format:'%(asctime) - %(levelname) - %(message) - %(error)',
     level: 'DEBUG'
 })
