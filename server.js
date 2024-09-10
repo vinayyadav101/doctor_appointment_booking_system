@@ -4,7 +4,7 @@ import dbConnection from './config/dbConnection.js'
 console.log(process.env.PORT);
 
 const port = process.env.PORT || 5000
-console.log(port);
+console.log(port)
 
 
 
