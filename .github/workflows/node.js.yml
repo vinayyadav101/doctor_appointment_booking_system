@@ -27,5 +27,7 @@ jobs:
     - run: npm ci
     - run: | 
           touch .env
+          mkdir logFiles
+          mkdir upload
           echo "${{ secrets.ENV_FILE }}" > .env
     - run: pm2 restart server.js
