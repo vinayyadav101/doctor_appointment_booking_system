@@ -83,7 +83,10 @@ const login = async(req,res,next)=>{
     }
 
         const user = await userModel.findOne({email}).select('+password')
-     
+    if (!user) {
+        logging.info("this email not exist!")
+        return next(new appError("this email not exist!",400))
+    }
     if (!(await bcrypt.compare(password,user.password ))) {
          logging.error('password error!')
          return next(new appError('password error!',400))
