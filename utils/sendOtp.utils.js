@@ -12,11 +12,11 @@ const sendOtp = async(emailID)=>{
 
     try {
         const transporter = nodemailer.createTransport({
-            host: 'smtp.ethereal.email',
-            port: 587,
+            service:process.env.EMAIL_SERVICE,
+            host: process.env.EMAIL_SERVICE_HOST,
             auth: {
-                user: process.env.EMAIL_USER,
-                pass: process.env.EMAIL_PASS
+                user: process.env.EMAIL_SERVICE_USER,
+                pass: process.env.EMAIL_SERVICE_PASS 
             }
         });
     

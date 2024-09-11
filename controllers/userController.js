@@ -225,15 +225,16 @@ const resetPassword = async(req,res,next)=>{
 }
 const changePassword = async(req,res,next)=>{
         const {oldPassword , newPassword} = req.body;
-        const {_id} = req.userData;
+        const {id} = req.userData;
 
-    if(!_id){
+
+    if(!id){
         logging.error("somthing wrong on logoin")
         return next(new appError("somthing wrong on logoin",400))
     }
 
     try {
-            const user = await userModel.findById(_id).select("+password")
+            const user = await userModel.findById(id).select("+password")
 
         if (!(await bcrypt.compare(oldPassword,user.password ))) {
              logging.error('oldpassword not same!')
@@ -331,8 +332,7 @@ const appointment = async(req,res,next) => {
 const appointmentHistory = async(req,res,next)=>{
 
 
-        const {email} = req.userData;
-
+        const {email,doctorId} = req.userData;
 
 
 
@@ -344,34 +344,45 @@ const appointmentHistory = async(req,res,next)=>{
 
 
         try {
+            let history;
 
 
-                const history = await appointmentModel.find({"patientEmail":email})
+                 if (req.userData.role === "user") {
+                    history = await appointmentModel.find({patientEmail:email},{
+                        doctorName:1,
+                        department:1,
+                        bookedDateTime:1,
+                        order_id:1,
+                        residual:1,
+                        status:1,
+                        prescription:1
+
+                    })
+                    
+                 }else{
+                    history = await appointmentModel.find({doctorID:doctorId},{
+                        patientEmail:1,
+                        patientName:1,
+                        phone:1,
+                        bookedDateTime:1,
+                        residual:1,
+                        prescription:1
+                    })
+                 }
 
 
-            if (!history) {
-                 logging.error("there is no appointment history!")
+
+            if (history.length === 0) {
+                logging.error("there is no appointment history!")
                 return next(new appError("there is no appointment history!",400))
             }
-
-
-            const details = history.map(item => ({
-                doctorName : item.doctorName,
-                bookedDateTime : item.bookedDateTime,
-                department : item.department,
-                order_id : item.order_id,
-                residual : item.residual,
-                status : item.status,
-                prescription : item.prescription
-              }));
-
 
 
             res.status(200).json({
                 code:1,
                 msg:"successfully fide history",
                 time:Date.now(),
-                data:details
+                data:history
             })
 
 

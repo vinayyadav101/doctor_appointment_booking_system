@@ -22,12 +22,13 @@ userRoutes.put('/changepassword' , userAuth ,changePassword)
 
 
 userRoutes.get('/profile' , userAuth ,getUserDetails)
+
 userRoutes.put('/updateprofile/' , userAuth ,authRole("user","admin") , upload.single("avatar"),updateProfile)
 
 
 
 userRoutes.post('/appointment/:id' ,userAuth, appointment , createOrder )
-userRoutes.get('/' , userAuth , appointmentHistory )
+userRoutes.get('/' , userAuth ,authRole("user","doctor"), appointmentHistory )
 
 
 
