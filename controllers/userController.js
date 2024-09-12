@@ -212,7 +212,7 @@ const resetPassword = async(req,res,next)=>{
         
         res.status(200).json({
             code:1,
-            msg:"password chage successfully",
+            msg:"password change successfully",
             time:Date.now()
         })
 

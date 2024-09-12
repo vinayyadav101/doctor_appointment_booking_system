@@ -127,7 +127,7 @@ const deleteUser = async(req,res,next,)=>{
 
 
     try {
-        if (!id === undefined) {
+        if (id) {
             deletedUser = await userModel.findByIdAndDelete(id)
 
         if (!deletedUser) {
