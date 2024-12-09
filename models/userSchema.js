@@ -37,7 +37,7 @@ const userSchema = new Schema(
         avatar:{
             url_link:{
                 type:"string",
-                default:undefined
+                default:'https://res.cloudinary.com/dr3opwg7s/image/upload/v1733585563/account_circle_24dp_5F6368_FILL0_wght400_GRAD0_opsz24_moucnt.svg'
             },
             avatar_id:{
                 type:"string",

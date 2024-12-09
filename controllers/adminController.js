@@ -4,6 +4,7 @@ import appError from "../utils/error.util.js";
 import logging from "../config/logfileConfig.js";
 import paymentModel from "../models/paymentSchema.js"
 import userModel from "../models/userSchema.js";
+import razorpay from "../config/paymentGatwayConfigration.js"
 
 
 const deleteDoctor = async(req,res,next)=>{
@@ -37,7 +38,7 @@ const deleteDoctor = async(req,res,next)=>{
 
 const paymentCollection = async(req,res,next) => {
     try {
-            const payments = await paymentModel.find()
+            const payments = await paymentModel.find().sort({createdAt: -1})
         
         if (payments.length === 0) {
             logging.error("no found any payments")
@@ -60,7 +61,7 @@ const paymentCollection = async(req,res,next) => {
 const allAppointments = async(req,res,next)=>{
 
     try {
-            const appointments = await appointmentModel.find()
+            const appointments = await appointmentModel.find().sort({createdAt: -1})
 
         if (appointments.length === 0) {
             logging.debug("not found any appoinments")
@@ -79,44 +80,7 @@ const allAppointments = async(req,res,next)=>{
     }
 }
 
-const getAllDoctors = async(req,res,next) => {
-    try {
-        const doctor_list = await doctorModel.find()
 
-        if (doctor_list.length === 0) {
-            logging.debug("smothing error in fetch data")
-            return next(new appError("smothing error in fetch data",404))
-        }
-        res.status(200).json({
-            code:1,
-            msg:"find doctor list successfully",
-            date:Date.now(),
-            data:doctor_list
-        })
-    } catch (error) {
-        logging.error(error)
-        return next(new appError(error,500))
-    }
-}
-const getAllUser = async(req,res,next)=>{
-    try {
-        const user_list = await userModel.find()
-
-        if (user_list.length === 0) {
-            logging.debug("smothing error in fetch data")
-            return next(new appError("smothing error in fetch data",404))
-        }
-        res.status(200).json({
-            code:1,
-            msg:"find doctor list successfully",
-            date:Date.now(),
-            data:user_list
-        })
-    } catch (error) {
-        logging.error(error)
-        return next(new appError(error,500))
-    }
-}
 const deleteUser = async(req,res,next,)=>{
 
 
@@ -160,6 +124,53 @@ const deleteUser = async(req,res,next,)=>{
     }
 
 }
+const appointmentFindById = async(req,res,next)=>{
+    const id = req.params.id
+
+
+
+        if (!id) {
+            return next(new appError(500,'enter Id'))
+        }
+    try {
+
+        
+            const payment = await appointmentModel.findById(id)
+
+
+                if (payment === null) {
+                    return next(new appError('appointment details not find by this id.',404))
+                }
+            res.status(200).json({
+                code:1,
+                date:Date.now(),
+                msg:"appointment details find successfully.",
+                data:payment
+            })
+    } catch (error) {
+        return next(new appError(error,500))
+    }
+}
+const getUser = async(req,res,next)=>{
+    const email = req.params.email
+    try {
+        const user = await userModel.findOne({email:email}).select('+password')
+
+        if (!user) {
+            logging.error('user not fond by this email.')
+            return next(new appError('user not fond by this email.',404))
+        }
+        res.status(200).json({
+            code:1,
+            msg:'user find successfully',
+            date:Date.now(),
+            data:user
+        })
+    } catch (error) {
+        logging.error(error)
+        return next(new appError(error,500))
+    }
+}
 
 
 
@@ -168,6 +179,6 @@ export {
     paymentCollection,
     allAppointments,
     deleteUser,
-    getAllUser,
-    getAllDoctors
+    appointmentFindById,
+    getUser
 }

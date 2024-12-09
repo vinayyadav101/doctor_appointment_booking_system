@@ -12,6 +12,7 @@ import cron from "./utils/checkAppoinmentStatus.js";
 import searchRoutes from "./routes/search.routes.js";
 import paymentRoutes from "./routes/payments.routes.js";
 import adminRoutes from "./routes/admin.routes.js";
+import graphData from "./routes/graphData.routes.js";
 
 
 
@@ -24,8 +25,8 @@ app.use(express.json())
 
 app.use(cookieParser())
 app.use(cors({
-    credentials:true,
-    origin:true
+    origin:process.env.CLIENT_URL,
+    credentials:true
 }))
 
 
@@ -38,6 +39,7 @@ app.use('/api/v1/doctor' , doctorRouter)
 app.use('/api/v1/search' , searchRoutes)
 app.use('/api/v1/payment' , paymentRoutes)
 app.use('/api/v2/admin' , adminRoutes)
+app.use('/graph/v2/admin' , graphData)
 
 
 

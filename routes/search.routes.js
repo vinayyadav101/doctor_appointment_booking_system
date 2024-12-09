@@ -1,5 +1,6 @@
 import { Router } from "express";
-import { getMoredata, search, searchWithFillter, topThreeDoctor } from "../controllers/searchController.js";
+import { search, searchWithFillter, topThreeDoctor } from "../controllers/searchController.js";
+import { authRole, userAuth } from "../middelwares/userAuth.js";
 
 
 
@@ -7,9 +8,10 @@ const searchRoutes = Router();
 
 
 searchRoutes.get('/' , search)
+searchRoutes.get('/admin/' ,userAuth,authRole('admin'), search)
 searchRoutes.post('/searchwithfilter' , searchWithFillter)
 
-searchRoutes.get('/getmoredata',getMoredata)
+
 searchRoutes.get('/topthreedoctors',topThreeDoctor)
 
 

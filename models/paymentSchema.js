@@ -18,6 +18,14 @@ const paymentSchema = new Schema(
         appointment_id: {
             type: 'string',
             required: true
+        },
+        amount:{
+            type:'number',
+            require:true
+        },
+        refund:{
+            type:"number",
+            default:undefined
         }
     },
     {

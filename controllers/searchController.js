@@ -8,40 +8,61 @@ import appointmentModel from "../models/appointmentSchema.js";
 const search = async(req,res,next) => {
 
         const {collect} = req.query;
+        const {id} = req.query
 
-
-        
-    if (!collect) {
-        logging.info("please provide doctor name and speciality ,somthing else")
-        return next(new appError("please provide doctor name and speciality ,somthing else" , 400))
-    }
     try {
-            const data = await doctorModel.find({
-                $or:[
-                    {
-                        doctorName : {
-                            $regex:collect
-                    }
-                    },
-                    {
-                        specialty:{
-                            $regex:collect
-                    }
-                    }
-                ]
+            if (id === undefined) {
+                if (!collect) {
+                    logging.info("please provide doctor name and speciality ,somthing else")
+                    return next(new appError("please provide doctor name and speciality ,somthing else" , 400))
+                }
+
+                const data = await doctorModel.find({
+                    $or:[
+                        {
+                            doctorName : {
+                                $regex:collect
+                        }
+                        },
+                        {
+                            specialty:{
+                                $regex:collect
+                        }
+                        },
+                        {
+                            address:{
+                                $regex:collect
+                            }
+                        }
+                    ]
+                }).select(req.path === '/admin/'?'+review':'')
+                if (data.length === 0) {
+                    logging.info("data not found")
+                    return next(new appError("data not found",404))
+                }
+        
+                res.status(200).json({
+                    code:1,
+                    msg:"data finde",
+                    date:Date.now(),
+                    data:data
+                })
+            }else{
+                const data = await doctorModel.findById(id)
+
+                if (data.length === 0) {
+                    logging.info("data not found")
+                    return next(new appError("data not found",404))
+                }
+        
+                res.status(200).json({
+                    code:1,
+                    msg:"data finde",
+                    date:Date.now(),
+                    data:data
             })
-
-        if (data.length === 0) {
-            logging.info("data not found")
-            return next(new appError("data not found",404))
         }
-
-        res.status(200).json({
-            code:1,
-            msg:"data finde",
-            date:Date.now(),
-            data:data
-        })
+        
     } catch (error) {
         logging.error(error)
         return next(new appError(error,500))
@@ -101,39 +122,6 @@ const searchWithFillter = async(req,res,next) =>{
 
 }
 
-const getMoredata = async(req,res,next)=>{
-
-    const databaseName = [userModel,doctorModel,paymentModel,appointmentModel]
-    const request = req.query
-    
-
-    
-    try {
-        databaseName.forEach(async(el)=>{
-            
-            if (el.modelName === Object.keys(request).toString()) {
-
-                        const data = await el.find().skip(Number(Object.values(request))).limit(10)
-
-                    if (data === 0) {
-                        logging.info("not get more data")
-                        return next(new appError("not get more data",404))
-                    }
-                    res.status(200).json({
-                        code:1,
-                        msg:"fetched data successfully",
-                        date:Date.now(),
-                        data:data
-                    }) 
-            }
-        })
-
-
-    } catch (error) {
-        logging.error(error)
-        return next(new appError(error,500))
-    }
-}
 
 const topThreeDoctor = async(req,res,next)=>{
 
@@ -165,6 +153,9 @@ const topThreeDoctor = async(req,res,next)=>{
         const topThreeDoctors = doctors_list.slice(0,3)
         
         res.status(200).json({
+            code:1,
+            date:Date.now(),
+            msg:"get filtered data successfully.",
             data:topThreeDoctors
         })
 
@@ -177,6 +168,5 @@ const topThreeDoctor = async(req,res,next)=>{
 export {
     search,
     searchWithFillter,
-    getMoredata,
-    topThreeDoctor
+    topThreeDoctor,
 }

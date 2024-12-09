@@ -8,7 +8,7 @@ const userAuth = async(req,res,next)=>{
     
     if (!token) {
         logging.info("cookies error")
-        return next(new appError('somthing is worng' , 400))
+        return next(new appError('user not login!' , 400))
     }
 
         const userDetails = jwt.verify(token , process.env.SECRET)
@@ -19,6 +19,7 @@ const userAuth = async(req,res,next)=>{
 }
 
 const authRole = (...roles) => (req,res,next) =>{
+    
     const curentRole = req.userData.role;
     
 

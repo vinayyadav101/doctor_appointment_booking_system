@@ -2,6 +2,7 @@ import nodemailer from 'nodemailer'
 import crypto from 'crypto'
 import logging from '../config/logfileConfig.js';
 
+
 const otps ={};
 
 const sendOtp = async(emailID)=>{
@@ -27,9 +28,12 @@ const sendOtp = async(emailID)=>{
             text: `your otp code is ${otp}`
         }
 
-        await transporter.sendMail(mailOptions)
+        const sendmail = await transporter.sendMail(mailOptions)
+        
+        
     } catch (error) {
         logging.error(error)
+        return error
     }
 }
 

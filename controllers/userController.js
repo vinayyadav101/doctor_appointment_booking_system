@@ -12,7 +12,9 @@ import fs from 'fs/promises'
 
 
 const cookieOptions = {
-    httpOnly:true,
+    secure: true,
+    path: '/',
+    sameSite:"None",
     maxAge: 24 * 60 * 60 *1000
 };
 
@@ -108,7 +110,12 @@ const login = async(req,res,next)=>{
 }
 const logout = async(req ,res,next)=>{
     
-    res.cookie('token' , '' ,{maxAge: new Date(0)})
+    res.clearCookie('token' ,{
+        secure: true,
+        path: '/',
+        sameSite:"None",
+        maxAge: new Date(0)
+    })
 
     res.status(200).json({
         code:1,
@@ -123,7 +130,7 @@ const getUserDetails = async(req,res,next)=>{
 
     try {
             if (req.userData.role === 'doctor') {
-                    const doctorDetails = await doctorModel.find({email:req.userData.email}).select("+review")
+                    const doctorDetails = await doctorModel.findOne({email:req.userData.email}).select("+review")
 
                 if (doctorDetails.length === 0) {
                     logging.info("doctor detail not dound")
@@ -167,13 +174,15 @@ const forgetPassword = async(req,res,next)=>{
 
 
         if (!user) {
-            logging.error('not valid email address')
-            return next(new appError('not valid email address'))
+            logging.error('this email not registerd.')
+            return next(new appError('email id not registerd.',404))
         }
 
 
-        await sendOtp(email)
-            
+        const response = await sendOtp(email)
+            if(response !== undefined){
+                throw new Error({backend:response.syscall || 'error in smtp..',frontend:'Server Down'})
+            }
             res.status(200).json({
                 code:1,
                 msg:"otp send successfully",
@@ -181,14 +190,15 @@ const forgetPassword = async(req,res,next)=>{
             })
             
     } catch (error) {
-        logging.error(error || "error in forgotpassword")
-        return next(new appError(error,500))
+        logging.error(error.backend ? error.backend:error || "error in forgotpassword")
+        return next(new appError(error.backend ? error.frontend: 'Server Down!',500))
     }
 
 }
 const resetPassword = async(req,res,next)=>{
 
         const {email , otp , newPassword} = req.body;
+
 
         const user = await userModel.findOne({email}).select("+password")
 
@@ -198,8 +208,8 @@ const resetPassword = async(req,res,next)=>{
     }
     
     if (!(otps[email] === otp)) {
-        logging.error("worng otp and emial")
-        return next(new appError("worng otp and emial",400))
+        logging.error("worng otp")
+        return next(new appError("worng otp",400))
     }
 
     try {
@@ -363,9 +373,10 @@ const appointmentHistory = async(req,res,next)=>{
                     history = await appointmentModel.find({doctorID:doctorId},{
                         patientEmail:1,
                         patientName:1,
-                        phone:1,
+                        status:1,
                         bookedDateTime:1,
                         residual:1,
+                        id:1,
                         prescription:1
                     })
                  }
@@ -452,6 +463,11 @@ const review = async(req,res,next)=>{
 const updateProfile = async(req,res,next)=>{
 
         const {id} = req.userData || req.query
+        const userData = req.userData
+
+        if (userData.role === 'doctor') {
+            return next()
+        }
 
     try{
 
@@ -512,9 +528,28 @@ const updateProfile = async(req,res,next)=>{
     }
     
 }
+
+const verify = async(req,res,next)=>{
+    try {
+        if (!req.userData) {
+            logging.INFO("cookie not found!")
+            return next(new appError("User not loggin" , 500))
+        }
+        res.status(200).json({
+            code:1,
+            msg:"User verify!",
+            date:Date.now(),
+            data:req.userData.role
+        })
+    } catch (error) {
+        logging.ERROR(error)
+        return next(new appError(error , 500))
+    }
+}
  
 
 export{
+    
     register,
     login,
     logout,
@@ -525,5 +560,6 @@ export{
     appointment,
     appointmentHistory,
     review,
-    updateProfile
+    updateProfile,
+    verify
 }

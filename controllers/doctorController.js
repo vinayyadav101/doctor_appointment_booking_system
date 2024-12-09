@@ -1,5 +1,3 @@
-
-
 import logging from "../config/logfileConfig.js";
 import appointmentModel from "../models/appointmentSchema.js";
 import doctorModel from "../models/doctorSchema.js";
@@ -13,12 +11,10 @@ import sendCommanMails from "../utils/sendCommanMails.js";
 
 const register = async(req,res,next) =>{
 
-
-        const {doctorName , email , specialty, qualifications ,gender, experience , consultaionFee} = req.body;
-
+        const {doctorName , email , specialty, qualifications ,gender, address,experience , consultaionFee} = req.body;
 
 
-    if (!email || !doctorName || !specialty || !qualifications || !experience || !consultaionFee ||!gender) {
+    if (!email || !doctorName || !specialty || !qualifications || !experience || !consultaionFee ||!gender || !address) {
         logging.error("for registration all fildes are required!")
         return next(new appError("All fields are required" , 400))
     }
@@ -36,15 +32,7 @@ const register = async(req,res,next) =>{
 
     try {
         
-            const doctor = await doctorModel.create({
-                doctorName,
-                email,
-                gender,
-                specialty,
-                qualifications,
-                experience,
-                consultaionFee
-            })
+            const doctor = await doctorModel.create(req.body)
         
 
         if (!doctor) {
@@ -55,7 +43,8 @@ const register = async(req,res,next) =>{
         res.status(200).json({
             code:1,
             msg:"doctor registerd",
-            time:Date.now()
+            time:Date.now(),
+            data:doctor
         })
 
     } catch (error) {
@@ -69,28 +58,32 @@ const cancelAppoinment = async(req,res,next) => {
         const bookingID = req.params.id;
 
     try {
-                const cancel = await appointmentModel.findByIdAndUpdate(
-                    {
-                        _id:bookingID
-                    },
-                    {
-                        status:"cancel"
-                    },
-                    {
-                        new:true
-                    }
-                )
+                const cancel = await appointmentModel.findById(bookingID)
             
-                if (!cancel) {
-                    logging.info("not valid id for cancel appointment")
-                    return next(new appError("not valid id",400))
-                }
+            if (!cancel) {
+                logging.info("not valid id for cancel appointment")
+                return next(new appError("not valid id",400))
+            }
+                    const checkTime =(residualTime = cancel.residual , bookedTime = cancel.bookedDateTime)=>{
 
+                        let bookingDateTime = new Date(`${residualTime?residualTime.date:bookedTime.date} ${residualTime?residualTime.time:bookedTime.time}`)
+                        const currentDateTime = new Date(new Date().toISOString().slice(0,17) + '00.000Z')
+
+                        return bookingDateTime > currentDateTime
+
+                    }
+            if (!checkTime()) {
+                logging.info("this time is not for cancel appointment")
+                return next(new appError("this time is not for cancel appointment",400))
+            }
+            cancel.status = "cancel"
+            await cancel.save()
 
             res.status(200).json({
                 code:1,
                 msg:"appointment cancel successfully",
-                date:Date.now()
+                date:Date.now(),
+                data:cancel
             })
     } catch (error) {
         logging.error(error)
@@ -105,21 +98,29 @@ const residual  = async(req,res,next) =>{
 
     try {
         
-            const residualAppointment = await appointmentModel.findByIdAndUpdate(
-                {
-                    _id:bookingID
-                },
-                {
-                    residual
-                },
-                {
-                    new:true
-                }
-            )
+            const residualAppointment = await appointmentModel.findById(bookingID)
+
+
         if (!residualAppointment) {
             logging.error("not found appointment and not update residual")
             return next(new appError("not found appointment",404))
         }
+        if (residualAppointment.residual.date , residualAppointment.residual.time !== null) {
+            logging.info("you already residuled time")
+            return next(new appError("you already residuled time"))
+        }
+
+                let bookingDateTime = new Date(`${residualAppointment.bookedDateTime.date} ${residualAppointment.bookedDateTime.time}`)
+                const futherTime = new Date(new Date().toISOString().slice(0,17) + '00.000Z')
+
+
+
+        if (!bookingDateTime > futherTime) {
+            logging.info("residual befor 2 hours of booked time")
+            return next(new appError("residual befor 2 hours of booked time",400))
+        }
+            residualAppointment.residual = residual
+            await residualAppointment.save()
             res.status(200).json({
                 code:1,
                 msg:"appointment successfully resadual",
@@ -168,7 +169,7 @@ const sendPrescription = async(req,res,next) => {
 
 
         if (!upload) {
-            fs.rm(file.path)
+                fs.rm(file.path)
             logging.critical("file not upload, somthing error!")
             return next(new appError("file not upload, somthing error!",400))
         }
@@ -198,22 +199,20 @@ const sendPrescription = async(req,res,next) => {
         )
         
         
-        fs.rm(file.path)
+            fs.rm(file.path)
         
         
         res.status(200).json({
             code:1,
+            date:Date.now(),
             msg:"file upload & email send successfully!",
-            data:findPaitent
         })
 
 
       } catch (error) {
-        fs.rm(file.path)
+            fs.rm(file.path)
         logging.critical(error)
-        return next(new appError(
-            error
-        ))
+        return next(new appError(error,500))
         
       }
        
@@ -221,7 +220,13 @@ const sendPrescription = async(req,res,next) => {
 }
 const updateDoctorProfile = async(req,res,next)=>{
 
-        const {id} = req.userData || req.query
+        const {doctorId} = req.userData || req.query
+        if (req.body.userName) {
+            req.body["doctorName"] = req.body.userName
+            delete req.body.userName
+        }
+
+
 
     try{
 
@@ -253,7 +258,7 @@ const updateDoctorProfile = async(req,res,next)=>{
         }
 
         const userAndUpdate = await doctorModel.findByIdAndUpdate(
-            id,
+            doctorId,
             {
                 $set: req.body
             },
@@ -282,10 +287,40 @@ const updateDoctorProfile = async(req,res,next)=>{
     }
 
 }
+
+const getAvailableDateAndTime = async(req,res,next)=>{
+    const {id} = req.params;
+
+        if (!id) {
+            logging.info("please enter valid!")
+            return next(new appError("please enter valid!",401))
+        }
+     try {
+        const dateTime = await appointmentModel.find(
+            {doctorID:id},
+            {
+                bookedDateTime:1,
+                residual:1
+            }
+        )
+        
+        res.status(200).json({
+            code:1,
+            msg:"data find successfully!",
+            date:Date.now(),
+            data:dateTime
+        })
+     } catch (error) {
+        logging.critical(error)
+        return next(new appError(error,500))
+     }   
+    
+}
 export {
     register,
     cancelAppoinment,
     residual,
     sendPrescription,
-    updateDoctorProfile
+    updateDoctorProfile,
+    getAvailableDateAndTime
 }

@@ -19,6 +19,9 @@ const createOrder = async(req,res,next) =>{
                 const order = await razorpay.orders.create({
                                     amount:(consultaionFee*100).toString(),
                                     currency:"INR",
+                                }).catch(error =>{
+                                    throw new Error("payment gat way not work on server side. try after some time.");
+                                    
                                 })
 
 
@@ -28,6 +31,8 @@ const createOrder = async(req,res,next) =>{
             }
 
 
+
+
             await appointmentModel.findByIdAndUpdate(appointmentID , {
                 "order_id":order.id
             })
@@ -35,7 +40,11 @@ const createOrder = async(req,res,next) =>{
             res.json({
                 code:1,
                 msg:"order create succsessfully",
-                date:Date.now()
+                date:Date.now(),
+                data:{  orderID:order.id , 
+                        Key:process.env.KEY_ID,
+                        appointmentID
+                }
             })
        } catch (error) {
             logging.error(error)
@@ -48,6 +57,7 @@ const verifyOrder = async(req,res,next) => {
         const {payment_id , order_id , signature , appointmentID} = req.body
 
         const appointment = await appointmentModel.findById(appointmentID)
+        const paymentDetails = await razorpay.payments.fetch(payment_id)
 
     if (!appointment) {
          logging.error("appointment details not found!")
@@ -69,7 +79,8 @@ const verifyOrder = async(req,res,next) => {
             payment_id,
             order_id,
             signature,
-            appointment_id:appointmentID
+            appointment_id:appointmentID,
+            amount: Math.floor(paymentDetails.amount / 100)
         })
 
         appointment.status = "confirm"
@@ -90,8 +101,38 @@ const verifyOrder = async(req,res,next) => {
         return next(new appError(error,500))
     }
 }
+const paymentFindByID = async(req,res,next) => {
+    const id = req.params.id
+
+    
+        if (!id) {
+            logging.error("payment id not mention.")
+            return next(new appError('enter Id',401))
+        }
+    try {
+
+        
+            const payment = await paymentModel.findOne({payment_id:id})
+
+
+                if (payment === null) {
+                    logging.error("payment details not find by this id")
+                    return next(new appError('payment details not find by this id.',404))
+                }
+            res.status(200).json({
+                code:1,
+                date:Date.now(),
+                msg:"payment details find successfully.",
+                data:payment
+            })
+    } catch (error) {
+        logging.error(error)
+        return next(new appError(error,500))
+    }
+}
 
 export {
     createOrder,
-    verifyOrder
+    verifyOrder,
+    paymentFindByID
 }

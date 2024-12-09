@@ -18,19 +18,16 @@ const doctorSchema = new Schema(
             lowercase : true,
             trime: true
         },
-        avatar:{
-            url_link:{
-                type:"string"
-            },
-            avatar_id:{
-                type:"string"
-            }
-        },
         gender:{
             type:"string",
             emum:["Male","Female","Other"],
             required:true,
             trime: true
+        },
+        address:{
+            type:"string",
+            required:true,
+            trime:true
         },
         specialty:{
             type:"string",
@@ -48,13 +45,21 @@ const doctorSchema = new Schema(
             type:"Number",
             required:true
         },
+        consultaionFee:{
+            type:'Number',
+            required:true
+        },
         role:{
             type:'string',
             default : 'doctor'
         },
-        consultaionFee:{
-            type:'Number',
-            required:true
+        avatar:{
+            url_link:{
+                type:"string"
+            },
+            avatar_id:{
+                type:"string"
+            }
         },
         review:{
             type:[
@@ -83,7 +88,7 @@ const doctorSchema = new Schema(
 )
 
 doctorSchema.pre('save', function(next){
-    if (!this.doctorName.includes('dr')) {
+    if (!this.doctorName.includes('Dr')) {
         this.doctorName = `dr ${this.doctorName}`
         return next()
     }
