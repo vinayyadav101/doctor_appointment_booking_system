@@ -34,6 +34,7 @@ app.use(cors({
 
 
 
+
 app.use('/api/v1/user' , userRoutes)
 app.use('/api/v1/doctor' , doctorRouter)
 app.use('/api/v1/search' , searchRoutes)
